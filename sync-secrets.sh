@@ -4,23 +4,24 @@ set -eo pipefail
 
 # ------------------------------ FUNCTIONS ------------------------------------
 
+# $1 - Operation
+# $2 - Secret Path
+
 function log_operation() {
-  # $1 - Operation
-  # $2 - Secret Path
   printf "\n[%s] [secret] %s\n" $1 $2
 }
 
 function vault_put() {
-  # $1 Secrets Path
+  log_operation $1 $2
   if [ "${DRY_RUN}" == "false" ]; then
-    $INSPECT_FILE_CMD secrets/$1.json | vault kv put $1 -
+    $INSPECT_FILE_CMD secrets/$2.json | vault kv put $2 -
   fi
 }
 
 function vault_delete() {
-  # $1 Secrets Path
+  log_operation $1 $2
   if [ "${DRY_RUN}" == "false" ]; then
-    vault kv metadata delete $1
+    vault kv metadata delete $2
   fi
 }
  
@@ -82,17 +83,11 @@ printf "%s\n" "$MODIFIED_FILES" | while read change; do
   SECRET_PATH=`printf "$change" | sed -nE 's/^[AMD]\s+secrets\/(.*)\.json$/\1/p'`
 
   case $OPERATION in 
-    'A')
-      log_operation $OPERATION $SECRET_PATH
-      vault_put $SECRET_PATH
-    ;;
-    'M')
-      log_operation $OPERATION $SECRET_PATH
-      vault_put $SECRET_PATH
+    'A'|'M')
+      vault_put $OPERATION $SECRET_PATH
     ;;
     'D')
-      log_operation $OPERATION $SECRET_PATH
-      vault_delete $SECRET_PATH
+      vault_delete $OPERATION $SECRET_PATH
     ;;
   esac
 
